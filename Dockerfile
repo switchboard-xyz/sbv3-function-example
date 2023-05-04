@@ -19,7 +19,7 @@ RUN echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.asc] https://p
     tee /etc/apt/sources.list.d/msprod.list
 
 # install Azure DCAP library
-RUN apt-get update && apt-get install -y az-dcap-client
+RUN apt-get update && apt-get install -y az-dcap-client xxd
 
 WORKDIR /sgx
 COPY --from=builder /app/app .
@@ -27,7 +27,6 @@ COPY configs/app.manifest.template .
 RUN gramine-manifest app.manifest.template > app.manifest
 RUN gramine-sgx-gen-private-key
 RUN gramine-sgx-sign --manifest app.manifest --output app.manifest.sgx | tee /out.txt
-RUN apt-get install xxd
 RUN cat /out.txt | tail -1 | sed -e "s/^[[:space:]]*//" | xxd -r -p | base64 | tee /measurement.txt
-RUN ["./app"]
+CMD ["./app"]
 

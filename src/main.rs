@@ -68,6 +68,8 @@ async fn main() {
         .unwrap();
     let fetched_object: MyObject = ipfs_manager.get_object(cid).await.unwrap();
     println!("{:#?}", fetched_object);
+    let quote = Sgx::gramine_generate_quote(&vec![]).unwrap();
+    println!("{:#?}", quote);
 
     // let url = std::env::var("RPC_URL").unwrap();
     // let wss_url = url.replace("https://", "wss://");
