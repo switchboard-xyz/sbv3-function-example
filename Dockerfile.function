@@ -1,0 +1,11 @@
+FROM gramineproject/gramine:v1.4
+RUN curl -fsSLo /usr/share/keyrings/microsoft.asc https://packages.microsoft.com/keys/microsoft.asc
+RUN echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.asc] https://packages.microsoft.com/ubuntu/20.04/prod focal main" | \
+    tee /etc/apt/sources.list.d/msprod.list
+
+# install Azure DCAP library
+RUN apt-get update && apt-get install -y az-dcap-client
+
+WORKDIR /sgx
+COPY ./bin/app app
+RUN ["./app"]
