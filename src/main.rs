@@ -16,6 +16,7 @@ use solana_sdk::signer::keypair::read_keypair_file;
 use std::sync::Arc;
 use switchboard_attestation_client as sbac;
 use tokio;
+use sgx_quote::Quote;
 type AnchorClient = Client<Arc<Keypair>>;
 
 const VERIFIER_QUEUE: Pubkey = pubkey!("4AnQSCo6YJmmYVq2BUHx5vfxoqktpBmTbDh1NurxShgN");
@@ -69,6 +70,7 @@ async fn main() {
     let fetched_object: MyObject = ipfs_manager.get_object(cid).await.unwrap();
     println!("{:#?}", fetched_object);
     let quote = Sgx::gramine_generate_quote(&vec![]).unwrap();
+    let quote = Quote::parse(&quote).unwrap();
     println!("{:#?}", quote);
 
     // let url = std::env::var("RPC_URL").unwrap();
