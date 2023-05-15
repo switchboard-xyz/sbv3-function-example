@@ -21,13 +21,13 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,targe
     cargo build --release && \
     cargo strip && \
     mv /app/target/release/app /app
-#
-# FROM gramineproject/gramine:v1.4
-# COPY --from=builder /app/app .
-# COPY configs/app.manifest.template .
-# RUN gramine-manifest app.manifest.template > app.manifest
-# RUN gramine-sgx-gen-private-key
-# RUN gramine-sgx-sign --manifest app.manifest --output app.manifest.sgx | tee /out.txt
-# RUN cat /out.txt | tail -1 | sed -e "s/^[[:space:]]*//" | xxd -r -p | base64 | tee /measurement.txt
-# ENTRYPOINT ["gramine-sgx", "app"]
-#
+
+FROM gramineproject/gramine:v1.4
+COPY --from=builder /app/app .
+COPY configs/app.manifest.template .
+RUN gramine-manifest app.manifest.template > app.manifest
+RUN gramine-sgx-gen-private-key
+RUN gramine-sgx-sign --manifest app.manifest --output app.manifest.sgx | tee /out.txt
+RUN cat /out.txt | tail -1 | sed -e "s/^[[:space:]]*//" | xxd -r -p | base64 | tee /measurement.txt
+ENTRYPOINT ["gramine-sgx", "app"]
+
