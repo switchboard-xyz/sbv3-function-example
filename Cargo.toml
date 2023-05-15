@@ -5,16 +5,18 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-switchboard-attestation-client = "0.1.7"
 anchor-client = "0.27.0"
-solana-sdk = "1.15.2"
-tokio = "1.26.0"
+futures = "0.3"
+getrandom = "0.2.8"
 ipfs-api = { version = "0.17.0", features = ["with-hyper-rustls"] }
 ipfs-api-backend-hyper = "0.6"
 serde = "1.0.160"
 serde_json = "1.0.96"
-futures = "0.3"
 sgx-quote = "0.1.0"
+sgx_types = "1.1.2"
+solana-sdk = "1.15.2"
+tokio = "1.26.0"
+sha2 = "0.10.6"
 
 [profile.release]
 strip = true  # Automatically strip symbols from the binary.
