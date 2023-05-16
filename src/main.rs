@@ -17,6 +17,9 @@ use sgx_quote::Quote;
 use getrandom::getrandom;
 use sha2::{Digest, Sha256};
 use std::fs;
+use bincode;
+use hex;
+use anchor_client::solana_sdk::instruction::Instruction;
 type AnchorClient = Client<Arc<Keypair>>;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -49,15 +52,52 @@ impl Sgx {
     }
 
     pub fn read_rand(buf: &mut [u8]) -> std::result::Result<(), Err> {
+        // https://gramine.readthedocs.io/en/latest/devel/features.html#randomness
         getrandom(buf).map_err(|_| Err::SgxError)
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct FunctionResult {
+    pub version: u32,
+    pub chain: Chain,
+    pub key: [u8; 32],
+    pub serialized_tx: Vec<u8>,
+    pub quote: Vec<u8>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum Chain {
+    Solana,
+    Arbitrum,
+    Bsc,
+    Coredao,
+    Aptos,
+    Sui,
+}
+
+pub async fn secure_sign_ix(sgx_kp: &Keypair) -> Instruction {
+    Instruction {
+        program_id: Pubkey::default(),
+        accounts: vec![],
+        data: vec![],
     }
 }
 
 #[tokio::main(worker_threads = 12)]
 async fn main() {
+    println!("START");
     let mut randomness = [0; 32];
     let quote_kp = Arc::new(keypair_from_seed(&randomness).unwrap());
-    let quote = Sgx::gramine_generate_quote(&quote_kp.pubkey().to_bytes()).unwrap();
-    let quote = Quote::parse(&quote).unwrap();
-    println!("{:#?}", quote);
+    let ix = secure_sign_ix(&quote_kp).await;
+    let mut result = FunctionResult {
+        version: 1,
+        chain: Chain::Solana,
+        key: quote_kp.pubkey().to_bytes(),
+        serialized_tx: bincode::serialize(&ix).unwrap(),
+        quote: vec![],
+    };
+    let quote_raw = Sgx::gramine_generate_quote(&bincode::serialize(&result).unwrap()).unwrap();
+    result.quote = quote_raw;
+    println!("{:#?}", hex::encode(&bincode::serialize(&result).unwrap()));
 }

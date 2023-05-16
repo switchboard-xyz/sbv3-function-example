@@ -2,7 +2,7 @@
 {% set log_level = "error" %}
 
 loader.entrypoint = "file:{{ gramine.libos }}"
-libos.entrypoint = "/sgx/app"
+libos.entrypoint = "/app/app"
 
 loader.log_level = "{{ log_level }}"
 
@@ -15,7 +15,7 @@ loader.env.PAYER = { passthrough = true }
 fs.mounts = [
   { path = "/etc", uri = "file:/etc" },
   { type = "encrypted", uri = "file:/data/protected_files", path = "/data/protected_files", key_name = "_sgx_mrenclave" },
-  { uri = "file:/sgx", path = "/sgx" },
+  { uri = "file:/app", path = "/app" },
   { uri = "file:/etc/ssl/certs", path = "/etc/ssl/certs" },
   { uri = "file:/lib64", path = "/lib64" },
   { uri = "file:/usr", path = "/usr" },
@@ -35,7 +35,7 @@ sgx.remote_attestation = "dcap"
 sys.insecure__allow_eventfd = true
 
 sgx.trusted_files = [
-  "file:/sgx/",
+  "file:/app/",
   "file:/etc/ssl/certs/",
   "file:/lib64/",
   "file:/usr/include/",
