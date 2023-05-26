@@ -1,29 +1,19 @@
 use anchor_client::anchor_lang::prelude::*;
-use anchor_client::anchor_lang::AnchorDeserialize;
-use anchor_client::anchor_lang::AnchorSerialize;
-use anchor_client::anchor_lang::Discriminator;
-use anchor_client::anchor_lang::InstructionData;
-use anchor_client::anchor_lang::ToAccountMetas;
+use anchor_client::anchor_lang::{AnchorDeserialize, AnchorSerialize, Discriminator, InstructionData, ToAccountMetas};
 use anchor_client::solana_sdk::instruction::Instruction;
 use anchor_client::solana_sdk::signer::keypair::Keypair;
 use anchor_client::Cluster;
-use bytemuck;
 use bytemuck::{Pod, Zeroable};
 use getrandom::getrandom;
 use serde::{Deserialize, Serialize};
 use sgx_quote::Quote;
 use sha2::{Digest, Sha256};
-use solana_sdk::commitment_config::CommitmentConfig;
-use solana_sdk::instruction::AccountMeta;
-use solana_sdk::message::Message;
-use solana_sdk::pubkey;
-use solana_sdk::pubkey::Pubkey;
-use solana_sdk::signature::Signer;
-use solana_sdk::signer::keypair::keypair_from_seed;
-use solana_sdk::transaction::Transaction;
+use solana_sdk::{
+    commitment_config::CommitmentConfig, instruction::AccountMeta, message::Message, pubkey, pubkey::Pubkey,
+    signature::Signer, signer::keypair::keypair_from_seed, transaction::Transaction,
+};
 use spl_token;
-use std::env;
-use std::fs;
+use std::{env, fs};
 use std::result::Result;
 use std::str::FromStr;
 use std::sync::Arc;
