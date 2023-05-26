@@ -4,19 +4,19 @@ use anchor_client::solana_client::rpc_client::RpcClient;
 use anchor_client::solana_sdk::signature::Signer;
 use anchor_client::solana_sdk::signer::keypair::keypair_from_seed;
 use anchor_client::solana_sdk::signer::keypair::Keypair;
-use anchor_client::Client;
-use anchor_client::Cluster;
-use serde::{Deserialize, Serialize};
-use solana_sdk::commitment_config::CommitmentConfig;
-use solana_sdk::pubkey;
+
+
+
+
+
 use solana_sdk::pubkey::Pubkey;
-use solana_sdk::signer::keypair::read_keypair_file;
-use std::sync::Arc;
+
+
 use tokio;
-use sgx_quote::Quote;
-use getrandom::getrandom;
-use sha2::{Sha256};
-use std::fs;
+
+
+
+
 use bincode;
 use hex;
 use serde_json;
@@ -26,7 +26,7 @@ use solana_sdk::message::Message;
 use std::str::FromStr;
 
 
-pub async fn secure_sign_ix(sgx_kp: &Keypair) -> Instruction {
+pub async fn secure_sign_ix(_sgx_kp: &Keypair) -> Instruction {
     Instruction {
         program_id: Pubkey::from_str("2No5FVKPAAYqytpkEoq93tVh33fo4p6DgAnm4S6oZHo7").unwrap(),
         accounts: vec![],
@@ -39,7 +39,7 @@ async fn main() {
     println!("START");
     let url = "https://api.devnet.solana.com".to_string();
     let client = RpcClient::new(url);
-    let mut randomness = [0; 32];
+    let randomness = [0; 32];
     let quote_kp = keypair_from_seed(&randomness).unwrap();
     let quote_raw = Sgx::gramine_generate_quote(&quote_kp.pubkey().to_bytes()).unwrap();
 
@@ -47,7 +47,7 @@ async fn main() {
     let msg = Message::default();
     let mut tx = Transaction::new_unsigned(msg);
     tx.partial_sign_unchecked(&[&quote_kp], vec![2], blockhash);
-    let mut result = FunctionResult {
+    let result = FunctionResult {
         version: 1,
         chain: Chain::Solana,
         key: quote_kp.pubkey().to_bytes(),
