@@ -6,20 +6,36 @@ use anchor_client::anchor_lang::InstructionData;
 use anchor_client::anchor_lang::ToAccountMetas;
 use anchor_client::solana_sdk::instruction::Instruction;
 use anchor_client::solana_sdk::signer::keypair::Keypair;
+use anchor_client::Cluster;
 use bytemuck;
 use bytemuck::{Pod, Zeroable};
 use getrandom::getrandom;
 use serde::{Deserialize, Serialize};
+use sgx_quote::Quote;
 use sha2::{Digest, Sha256};
+use solana_sdk::commitment_config::CommitmentConfig;
 use solana_sdk::instruction::AccountMeta;
+use solana_sdk::message::Message;
 use solana_sdk::pubkey;
 use solana_sdk::pubkey::Pubkey;
+use solana_sdk::signature::Signer;
+use solana_sdk::signer::keypair::keypair_from_seed;
+use solana_sdk::transaction::Transaction;
 use spl_token;
+use std::env;
 use std::fs;
 use std::result::Result;
+use std::str::FromStr;
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const ATTESTATION_PID: Pubkey = pubkey!("2No5FVKPAAYqytpkEoq93tVh33fo4p6DgAnm4S6oZHo7");
+
+pub fn generate_signer() -> Arc<Keypair> {
+    let mut randomness = [0; 32];
+    Sgx::read_rand(&mut randomness).unwrap();
+    Arc::new(keypair_from_seed(&randomness).unwrap())
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Err {
@@ -39,6 +55,65 @@ pub struct FunctionResult {
     pub quote: Vec<u8>,
     pub program: Vec<u8>,
     pub data: Vec<u8>,
+}
+impl FunctionResult {
+    pub async fn generate_verifiable_solana_tx(
+        enclave_signer: Arc<Keypair>,
+        mut ixs: Vec<Instruction>,
+    ) -> Result<FunctionResult, Err> {
+        let current_time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+        let client = anchor_client::Client::new_with_options(
+            Cluster::Devnet,
+            enclave_signer.clone(),
+            CommitmentConfig::processed(),
+        );
+        let quote_raw = Sgx::gramine_generate_quote(&enclave_signer.pubkey().to_bytes()).unwrap();
+        let quote = Quote::parse(&quote_raw).unwrap();
+
+        let blockhash = client
+            .program(ATTESTATION_PID)
+            .rpc()
+            .get_latest_blockhash()
+            .unwrap();
+        let function = Pubkey::from_str(&env::var("FUNCTION_KEY").unwrap()).unwrap();
+        let payer = Pubkey::from_str(&env::var("PAYER").unwrap()).unwrap();
+        let ix = FunctionVerify::build(
+            &client,
+            FunctionVerifyArgs {
+                function,
+                fn_signer: enclave_signer.pubkey(),
+                reward_receiver: Pubkey::from_str(&env::var("REWARD_RECEIVER").unwrap()).unwrap(),
+                verifier: Pubkey::from_str(&env::var("VERIFIER").unwrap()).unwrap(),
+                payer,
+                timestamp: current_time,
+                next_allowed_timestamp: current_time,
+                is_failure: false,
+                mr_enclave: quote.isv_report.mrenclave.try_into().unwrap(),
+            },
+        )
+        .await
+        .unwrap();
+        ixs.insert(0, ix);
+        let message = Message::new(&ixs, Some(&payer));
+        let mut tx = Transaction::new_unsigned(message);
+        tx.partial_sign_unchecked(&[enclave_signer.as_ref()], vec![2], blockhash);
+        Ok(FunctionResult {
+            version: 1,
+            chain: Chain::Solana,
+            key: function.to_bytes(),
+            signer: enclave_signer.pubkey().to_bytes(),
+            serialized_tx: bincode::serialize(&tx).unwrap(),
+            quote: quote_raw,
+            ..Default::default()
+        })
+    }
+
+    pub fn emit(&self) {
+        println!("{:#?}", hex::encode(&serde_json::to_string(&self).unwrap()));
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
