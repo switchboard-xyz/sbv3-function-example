@@ -121,7 +121,7 @@ impl Default for Chain {
     }
 }
 
-pub struct Sgx {}
+pub struct Sgx;
 impl Sgx {
     pub fn gramine_generate_quote(user_data: &[u8]) -> std::result::Result<Vec<u8>, Err> {
         match fs::metadata("/dev/attestation/quote") {
