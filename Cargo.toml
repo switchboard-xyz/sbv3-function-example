@@ -19,6 +19,7 @@ hex = { version = "0.4.3", features = ["serde"] }
 lazy_static = "1.4.0"
 spl-token = "3.5.0"
 bytemuck = "1.13.1"
+chrono = "0.4"
 
 [profile.release]
 strip = true  # Automatically strip symbols from the binary.

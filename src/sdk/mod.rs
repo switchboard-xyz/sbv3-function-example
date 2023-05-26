@@ -1,43 +1,25 @@
-
-
-
-use anchor_client::solana_sdk::signer::keypair::Keypair;
-
-
-use serde::{Deserialize, Serialize};
-
-use solana_sdk::pubkey;
-use solana_sdk::pubkey::Pubkey;
-
-use std::sync::Arc;
-
-
-use getrandom::getrandom;
-use sha2::{Digest, Sha256};
-use std::fs;
-
-
-
-use anchor_client::solana_sdk::instruction::Instruction;
-
-
-
-
-use bytemuck;
-use solana_sdk::instruction::AccountMeta;
-use spl_token;
-use anchor_client::anchor_lang::AnchorSerialize;
+use anchor_client::anchor_lang::prelude::*;
 use anchor_client::anchor_lang::AnchorDeserialize;
-
-
-use anchor_client::anchor_lang::ToAccountMetas;
+use anchor_client::anchor_lang::AnchorSerialize;
 use anchor_client::anchor_lang::Discriminator;
 use anchor_client::anchor_lang::InstructionData;
+use anchor_client::anchor_lang::ToAccountMetas;
+use anchor_client::solana_sdk::instruction::Instruction;
+use anchor_client::solana_sdk::signer::keypair::Keypair;
+use bytemuck;
 use bytemuck::{Pod, Zeroable};
-use anchor_client::anchor_lang::prelude::*;
+use getrandom::getrandom;
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use solana_sdk::instruction::AccountMeta;
+use solana_sdk::pubkey;
+use solana_sdk::pubkey::Pubkey;
+use spl_token;
+use std::fs;
 use std::result::Result;
+use std::sync::Arc;
 
-const ATTESTATION_PID: Pubkey = pubkey!("2No5FVKPAAYqytpkEoq93tVh33fo4p6DgAnm4S6oZHo7");
+pub const ATTESTATION_PID: Pubkey = pubkey!("2No5FVKPAAYqytpkEoq93tVh33fo4p6DgAnm4S6oZHo7");
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Err {
@@ -217,8 +199,10 @@ impl FunctionVerify {
         let queue = fn_data.attestation_queue;
         let queue_data: AttestationQueueAccountData = load(client, queue).await?;
         let escrow = fn_data.escrow;
-        let (fn_quote, _) =
-            Pubkey::find_program_address(&[b"QuoteAccountData", &args.function.to_bytes()], &ATTESTATION_PID);
+        let (fn_quote, _) = Pubkey::find_program_address(
+            &[b"QuoteAccountData", &args.function.to_bytes()],
+            &ATTESTATION_PID,
+        );
         let (permission, _) = Pubkey::find_program_address(
             &[
                 b"PermissionccountData",
@@ -266,9 +250,7 @@ impl FunctionVerify {
 pub fn ix_discriminator(name: &str) -> [u8; 8] {
     let preimage = format!("global:{}", name);
     let mut sighash = [0u8; 8];
-    sighash.copy_from_slice(
-        &solana_sdk::hash::hash(preimage.as_bytes()).to_bytes()[..8],
-    );
+    sighash.copy_from_slice(&solana_sdk::hash::hash(preimage.as_bytes()).to_bytes()[..8]);
     sighash
 }
 
@@ -282,7 +264,6 @@ pub fn build_ix<A: ToAccountMetas, I: InstructionData + Discriminator>(
         data: params.data(),
     }
 }
-
 
 pub async fn load<T: bytemuck::Pod>(
     client: &anchor_client::Client<Arc<Keypair>>,
