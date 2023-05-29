@@ -94,7 +94,7 @@ impl FunctionResult {
         ixs.insert(0, ix);
         let message = Message::new(&ixs, Some(&payer));
         let mut tx = Transaction::new_unsigned(message);
-        tx.partial_sign_unchecked(&[enclave_signer.as_ref()], vec![2], blockhash);
+        tx.partial_sign(&[enclave_signer.as_ref()], blockhash);
         Ok(FunctionResult {
             version: 1,
             chain: Chain::Solana,
