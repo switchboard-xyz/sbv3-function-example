@@ -33,6 +33,7 @@ pub enum Err {
     SgxError,
     SgxWriteError,
     AnchorParseError,
+    VerifierMissing,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
@@ -70,13 +71,17 @@ impl FunctionResult {
             .unwrap();
         let function = Pubkey::from_str(&env::var("FUNCTION_KEY").unwrap()).unwrap();
         let payer = Pubkey::from_str(&env::var("PAYER").unwrap()).unwrap();
+        let verifier = &env::var("VERIFIER").unwrap_or(String::new());
+        if verifier.is_empty() {
+            return Err(Err::VerifierMissing);
+        }
         let ix = FunctionVerify::build(
             &client,
             FunctionVerifyArgs {
                 function,
                 fn_signer: enclave_signer.pubkey(),
                 reward_receiver: Pubkey::from_str(&env::var("REWARD_RECEIVER").unwrap()).unwrap(),
-                verifier: Pubkey::from_str(&env::var("VERIFIER").unwrap()).unwrap(),
+                verifier: Pubkey::from_str(verifier).unwrap(),
                 payer,
                 timestamp: current_time,
                 next_allowed_timestamp: current_time,
@@ -102,7 +107,7 @@ impl FunctionResult {
     }
 
     pub fn emit(&self) {
-        println!("{:#?}", hex::encode(&serde_json::to_string(&self).unwrap()));
+        println!("FN_OUT: {}", hex::encode(&serde_json::to_string(&self).unwrap()));
     }
 }
 
@@ -124,10 +129,7 @@ impl Default for Chain {
 pub struct Sgx;
 impl Sgx {
     pub fn gramine_generate_quote(user_data: &[u8]) -> std::result::Result<Vec<u8>, Err> {
-        match fs::metadata("/dev/attestation/quote") {
-            Ok(_) => (),
-            Err(_) => return Err(Err::SgxError),
-        }
+        fs::metadata("/dev/attestation/quote").map_err(|_| Err::SgxError)?;
         let mut hasher = Sha256::new();
         hasher.update(user_data);
         let hash_result = &hasher.finalize()[..32];
@@ -387,6 +389,7 @@ pub struct FunctionAccountData {
     pub schedule: [u8; 64],
     pub escrow: Pubkey,
     pub status: FunctionStatus,
+    pub created_at: i64,
     pub _ebuf: [u8; 1024],
 }
 unsafe impl Pod for FunctionAccountData {}

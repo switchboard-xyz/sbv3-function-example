@@ -11,6 +11,9 @@ loader.env.PATH = "/bin:/usr/bin"
 
 loader.env.RPC_URL = { passthrough = true }
 loader.env.PAYER = { passthrough = true }
+loader.env.FUNCTION_KEY = { passthrough = true }
+loader.env.VERIFIER = { passthrough = true }
+loader.env.REWARD_RECEIVER = { passthrough = true }
 
 fs.mounts = [
   { path = "/etc", uri = "file:/etc" },
