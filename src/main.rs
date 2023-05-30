@@ -59,8 +59,8 @@ async fn main() {
         ],
         data: PingParams::default().data(),
     };
-    let function_output = FunctionResult::generate_verifiable_solana_tx(enclave_signer, vec![ix])
+    FunctionResult::generate_verifiable_solana_tx(enclave_signer, vec![ix])
         .await
-        .unwrap();
-    function_output.emit();
+        .unwrap()
+        .emit();
 }
