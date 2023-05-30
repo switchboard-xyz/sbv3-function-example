@@ -183,6 +183,7 @@ pub struct FunctionVerifyArgs {
     pub is_failure: bool,
     pub mr_enclave: [u8; 32],
 }
+
 impl Discriminator for FunctionVerifyParams {
     const DISCRIMINATOR: [u8; 8] = [0; 8];
     fn discriminator() -> [u8; 8] {
@@ -272,20 +273,15 @@ impl FunctionVerify {
         );
         let (permission, _) = Pubkey::find_program_address(
             &[
-                b"PermissionccountData",
+                b"PermissionAccountData",
                 &queue_data.authority.to_bytes(),
                 &queue.to_bytes(),
-                &args.function.to_bytes(),
+                &args.payer.to_bytes(),
             ],
             &ATTESTATION_PID,
         );
         let (state, _) = Pubkey::find_program_address(
-            &[
-                b"STATE",
-                &queue_data.authority.to_bytes(),
-                &queue.to_bytes(),
-                &args.function.to_bytes(),
-            ],
+            &[b"STATE"],
             &ATTESTATION_PID,
         );
         let accounts = Self {
@@ -404,4 +400,13 @@ pub enum FunctionStatus {
     Expired = 1 << 2,
     OutOfFunds = 1 << 3,
     InvalidPermissions = 1 << 4,
+}
+
+pub fn fn_accounts() -> (Pubkey, Pubkey) {
+    let fn_key = Pubkey::from_str(&env::var("FUNCTION_KEY").unwrap()).unwrap();
+    let (fn_quote, _) = Pubkey::find_program_address(
+        &[b"QuoteAccountData", &fn_key.to_bytes()],
+        &ATTESTATION_PID,
+    );
+    (fn_key, fn_quote)
 }
