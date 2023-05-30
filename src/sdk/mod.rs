@@ -159,7 +159,8 @@ pub struct FunctionVerify {
     pub attestation_queue: Pubkey,
     pub escrow: Pubkey,
     pub receiver: Pubkey,
-    pub permission: Pubkey,
+    pub verifier_permission: Pubkey,
+    pub fn_permission: Pubkey,
     pub state: Pubkey,
     pub token_program: Pubkey,
     pub payer: Pubkey,
@@ -230,7 +231,12 @@ impl ToAccountMetas for FunctionVerify {
                 is_writable: true,
             },
             AccountMeta {
-                pubkey: self.permission,
+                pubkey: self.verifier_permission,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: self.fn_permission,
                 is_signer: false,
                 is_writable: false,
             },
@@ -271,12 +277,21 @@ impl FunctionVerify {
             &[b"QuoteAccountData", &args.function.to_bytes()],
             &ATTESTATION_PID,
         );
-        let (permission, _) = Pubkey::find_program_address(
+        let (verifier_permission, _) = Pubkey::find_program_address(
             &[
                 b"PermissionAccountData",
                 &queue_data.authority.to_bytes(),
                 &queue.to_bytes(),
                 &args.payer.to_bytes(),
+            ],
+            &ATTESTATION_PID,
+        );
+        let (fn_permission, _) = Pubkey::find_program_address(
+            &[
+                b"PermissionAccountData",
+                &queue_data.authority.to_bytes(),
+                &queue.to_bytes(),
+                &args.function.to_bytes(),
             ],
             &ATTESTATION_PID,
         );
@@ -292,7 +307,8 @@ impl FunctionVerify {
             attestation_queue: queue,
             escrow,
             receiver: args.reward_receiver,
-            permission,
+            verifier_permission,
+            fn_permission,
             state,
             token_program: spl_token::ID,
             payer: args.payer,
