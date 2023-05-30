@@ -84,7 +84,7 @@ impl FunctionResult {
             return Err(Err::VerifierMissing);
         }
         let next_allowed_timestamp = fn_data
-            .next_execution_timestamp(current_time)
+            .next_execution_timestamp()
             .map(|x| x.timestamp())
             .unwrap_or(i64::MAX);
         let ix = FunctionVerify::build(
@@ -438,9 +438,7 @@ impl FunctionAccountData {
         )
     }
 
-    pub fn next_execution_timestamp(&self, now: i64) -> Option<DateTime<Utc>> {
-        let _now: DateTime<Utc> =
-            DateTime::from_utc(NaiveDateTime::from_timestamp_opt(now, 0).unwrap(), Utc);
+    pub fn next_execution_timestamp(&self) -> Option<DateTime<Utc>> {
         let schedule = self.get_schedule();
         if schedule.is_none() {
             return None;
