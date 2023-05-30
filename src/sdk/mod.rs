@@ -1,23 +1,30 @@
 use anchor_client::anchor_lang::prelude::*;
-use anchor_client::anchor_lang::{AnchorDeserialize, AnchorSerialize, Discriminator, InstructionData, ToAccountMetas};
+use anchor_client::anchor_lang::{
+    AnchorDeserialize, AnchorSerialize, Discriminator, InstructionData, ToAccountMetas,
+};
 use anchor_client::solana_sdk::instruction::Instruction;
 use anchor_client::solana_sdk::signer::keypair::Keypair;
 use anchor_client::Cluster;
 use bytemuck::{Pod, Zeroable};
+use chrono::DateTime;
+use chrono::NaiveDateTime;
+use chrono::Utc;
+use cron::Schedule;
 use getrandom::getrandom;
 use serde::{Deserialize, Serialize};
 use sgx_quote::Quote;
 use sha2::{Digest, Sha256};
 use solana_sdk::{
-    commitment_config::CommitmentConfig, instruction::AccountMeta, message::Message, pubkey, pubkey::Pubkey,
-    signature::Signer, signer::keypair::keypair_from_seed, transaction::Transaction,
+    commitment_config::CommitmentConfig, instruction::AccountMeta, message::Message, pubkey,
+    pubkey::Pubkey, signature::Signer, signer::keypair::keypair_from_seed,
+    transaction::Transaction,
 };
 use spl_token;
-use std::{env, fs};
 use std::result::Result;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::{env, fs};
 
 pub const ATTESTATION_PID: Pubkey = pubkey!("2No5FVKPAAYqytpkEoq93tVh33fo4p6DgAnm4S6oZHo7");
 
@@ -70,11 +77,16 @@ impl FunctionResult {
             .get_latest_blockhash()
             .unwrap();
         let function = Pubkey::from_str(&env::var("FUNCTION_KEY").unwrap()).unwrap();
+        let fn_data: FunctionAccountData = load(&client, function).await?;
         let payer = Pubkey::from_str(&env::var("PAYER").unwrap()).unwrap();
         let verifier = &env::var("VERIFIER").unwrap_or(String::new());
         if verifier.is_empty() {
             return Err(Err::VerifierMissing);
         }
+        let next_allowed_timestamp = fn_data
+            .next_execution_timestamp(current_time)
+            .map(|x| x.timestamp())
+            .unwrap_or(i64::MAX);
         let ix = FunctionVerify::build(
             &client,
             FunctionVerifyArgs {
@@ -84,7 +96,7 @@ impl FunctionResult {
                 verifier: Pubkey::from_str(verifier).unwrap(),
                 payer,
                 timestamp: current_time,
-                next_allowed_timestamp: current_time,
+                next_allowed_timestamp,
                 is_failure: false,
                 mr_enclave: quote.isv_report.mrenclave.try_into().unwrap(),
             },
@@ -107,7 +119,10 @@ impl FunctionResult {
     }
 
     pub fn emit(&self) {
-        println!("FN_OUT: {}", hex::encode(&serde_json::to_string(&self).unwrap()));
+        println!(
+            "FN_OUT: {}",
+            hex::encode(&serde_json::to_string(&self).unwrap())
+        );
     }
 }
 
@@ -295,10 +310,7 @@ impl FunctionVerify {
             ],
             &ATTESTATION_PID,
         );
-        let (state, _) = Pubkey::find_program_address(
-            &[b"STATE"],
-            &ATTESTATION_PID,
-        );
+        let (state, _) = Pubkey::find_program_address(&[b"STATE"], &ATTESTATION_PID);
         let accounts = Self {
             function: args.function,
             fn_signer: args.fn_signer,
@@ -406,6 +418,37 @@ pub struct FunctionAccountData {
 }
 unsafe impl Pod for FunctionAccountData {}
 unsafe impl Zeroable for FunctionAccountData {}
+impl FunctionAccountData {
+    pub fn get_schedule(&self) -> Option<Schedule> {
+        if self.schedule[0] == 0 {
+            return None;
+        }
+        let every_second = Schedule::try_from("* * * * * *").unwrap();
+        let schedule = std::str::from_utf8(&self.schedule)
+            .unwrap_or("* * * * * *")
+            .trim_end_matches('\0');
+        let schedule = Schedule::try_from(schedule);
+        Some(schedule.unwrap_or(every_second.clone()))
+    }
+
+    pub fn get_last_execution_datetime(&self) -> DateTime<Utc> {
+        DateTime::from_utc(
+            NaiveDateTime::from_timestamp_opt(self.last_execution_timestamp, 0).unwrap(),
+            Utc,
+        )
+    }
+
+    pub fn next_execution_timestamp(&self, now: i64) -> Option<DateTime<Utc>> {
+        let _now: DateTime<Utc> =
+            DateTime::from_utc(NaiveDateTime::from_timestamp_opt(now, 0).unwrap(), Utc);
+        let schedule = self.get_schedule();
+        if schedule.is_none() {
+            return None;
+        }
+        let dt = self.get_last_execution_datetime();
+        schedule.unwrap().after(&dt).next()
+    }
+}
 
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, AnchorSerialize, AnchorDeserialize)]
@@ -420,9 +463,7 @@ pub enum FunctionStatus {
 
 pub fn fn_accounts() -> (Pubkey, Pubkey) {
     let fn_key = Pubkey::from_str(&env::var("FUNCTION_KEY").unwrap()).unwrap();
-    let (fn_quote, _) = Pubkey::find_program_address(
-        &[b"QuoteAccountData", &fn_key.to_bytes()],
-        &ATTESTATION_PID,
-    );
+    let (fn_quote, _) =
+        Pubkey::find_program_address(&[b"QuoteAccountData", &fn_key.to_bytes()], &ATTESTATION_PID);
     (fn_key, fn_quote)
 }
