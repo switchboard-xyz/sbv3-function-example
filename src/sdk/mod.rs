@@ -172,6 +172,7 @@ pub struct FunctionVerify {
     pub fn_signer: Pubkey,
     pub fn_quote: Pubkey,
     pub verifier_quote: Pubkey,
+    pub secured_signer: Pubkey,
     pub attestation_queue: Pubkey,
     pub escrow: Pubkey,
     pub receiver: Pubkey,
@@ -228,6 +229,11 @@ impl ToAccountMetas for FunctionVerify {
             },
             AccountMeta {
                 pubkey: self.verifier_quote,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: self.secured_signer,
                 is_signer: true,
                 is_writable: false,
             },
@@ -288,6 +294,7 @@ impl FunctionVerify {
         let fn_data: FunctionAccountData = load(client, args.function).await?;
         let queue = fn_data.attestation_queue;
         let queue_data: AttestationQueueAccountData = load(client, queue).await?;
+        let quote_data: QuoteAccountData = load(client, args.verifier).await?;
         let escrow = fn_data.escrow;
         let (fn_quote, _) = Pubkey::find_program_address(
             &[b"QuoteAccountData", &args.function.to_bytes()],
@@ -298,7 +305,7 @@ impl FunctionVerify {
                 b"PermissionAccountData",
                 &queue_data.authority.to_bytes(),
                 &queue.to_bytes(),
-                &args.payer.to_bytes(),
+                &args.verifier.to_bytes(),
             ],
             &ATTESTATION_PID,
         );
@@ -317,6 +324,7 @@ impl FunctionVerify {
             fn_signer: args.fn_signer,
             fn_quote,
             verifier_quote: args.verifier,
+            secured_signer: quote_data.secured_signer,
             attestation_queue: queue,
             escrow,
             receiver: args.reward_receiver,
@@ -448,6 +456,38 @@ impl FunctionAccountData {
         schedule.unwrap().after(&dt).next()
     }
 }
+
+#[repr(packed)]
+#[derive(Copy, Clone, Debug)]
+pub struct QuoteAccountData {
+    pub secured_signer: Pubkey,
+    pub bump: u8,
+    // Set except for function quotes
+    /// TODO: Add description
+    pub quote_registry: [u8; 32],
+    /// Key to lookup the buffer data on IPFS or an alternative decentralized storage solution.
+    pub registry_key: [u8; 64],
+
+    // always set
+    /// Queue used for attestation to verify a MRENCLAVE measurement.
+    pub attestation_queue: Pubkey,
+    /// The quotes MRENCLAVE measurement dictating the contents of the secure enclave.
+    pub mr_enclave: [u8; 32],
+    pub verification_status: u8,
+    pub verification_timestamp: i64,
+    pub valid_until: i64,
+    // Set for verifiers
+    pub is_on_queue: bool,
+    /// The last time the quote heartbeated.
+    pub last_heartbeat: i64,
+    pub authority: Pubkey,
+    //
+    pub created_at: i64,
+    pub _ebuf: [u8; 992],
+}
+
+unsafe impl Pod for QuoteAccountData {}
+unsafe impl Zeroable for QuoteAccountData {}
 
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, AnchorSerialize, AnchorDeserialize)]
