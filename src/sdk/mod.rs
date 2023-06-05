@@ -25,6 +25,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{env, fs};
+use rust_decimal::prelude::*;
 
 pub const ATTESTATION_PID: Pubkey = pubkey!("2No5FVKPAAYqytpkEoq93tVh33fo4p6DgAnm4S6oZHo7");
 
@@ -465,3 +466,21 @@ pub fn fn_accounts() -> (Pubkey, Pubkey) {
         Pubkey::find_program_address(&[b"QuoteAccountData", &fn_key.to_bytes()], &ATTESTATION_PID);
     (fn_key, fn_quote)
 }
+
+#[derive(Default, Eq, PartialEq, Copy, Clone, AnchorSerialize, AnchorDeserialize, Debug)]
+pub struct BorshDecimal {
+    pub mantissa: i128,
+    pub scale: u32,
+}
+impl From<Decimal> for BorshDecimal {
+    fn from(val: Decimal) -> Self {
+        BorshDecimal { mantissa: val.mantissa(), scale: val.scale() }
+    }
+}
+impl From<&String> for BorshDecimal {
+    fn from(val: &String) -> Self {
+        let val = Decimal::from_str(val.as_ref()).unwrap();
+        BorshDecimal::from(val)
+    }
+}
+
