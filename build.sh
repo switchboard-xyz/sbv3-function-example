@@ -8,5 +8,5 @@ mkdir -p out/
 docker cp "$id":/measurement.txt out/measurement.txt
 docker kill "$id"
 MEASUREMENT="$(cat out/measurement.txt)"
-echo "Measurement: ${MEASUREMENT}"
+echo "${MEASUREMENT}"
 docker images -f "reference=${IMG_NAME}" | grep -v "<none>"

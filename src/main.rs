@@ -1,6 +1,3 @@
-pub mod sdk;
-pub use sdk::*;
-
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
 use anchor_lang::AnchorDeserialize;
@@ -8,13 +5,12 @@ use anchor_lang::AnchorSerialize;
 use anchor_lang::Discriminator;
 use anchor_lang::InstructionData;
 use reqwest;
-
+use sb_functions_sdk::*;
 use serde::Deserialize;
 use solana_sdk::instruction::AccountMeta;
 use solana_sdk::pubkey;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Signer;
-
 use tokio;
 
 const DEMO_PID: Pubkey = pubkey!("8kjszBCEgkzAsU6QySHSZvr9yFaboau2RnarCQFFvasS");
