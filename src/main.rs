@@ -1,21 +1,21 @@
 pub mod sdk;
 pub use sdk::*;
 
+use anchor_lang::prelude::*;
+use anchor_lang::solana_program::instruction::Instruction;
 use anchor_lang::AnchorDeserialize;
 use anchor_lang::AnchorSerialize;
 use anchor_lang::Discriminator;
 use anchor_lang::InstructionData;
-use anchor_lang::prelude::*;
-use anchor_lang::solana_program::instruction::Instruction;
 use reqwest;
+
 use serde::Deserialize;
 use solana_sdk::instruction::AccountMeta;
-use solana_sdk::pubkey::Pubkey;
 use solana_sdk::pubkey;
+use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Signer;
+
 use tokio;
-use rust_decimal::Decimal;
-use std::str::FromStr;
 
 const DEMO_PID: Pubkey = pubkey!("8kjszBCEgkzAsU6QySHSZvr9yFaboau2RnarCQFFvasS");
 
@@ -44,19 +44,18 @@ struct Ticker {
 
 #[tokio::main(worker_threads = 12)]
 async fn main() {
-    let symbols = [
-        "BTCUSDC",
-        "ETHUSDC",
-        "SOLUSDT"
-    ];
+    let symbols = ["BTCUSDC", "ETHUSDC", "SOLUSDT"];
 
     let symbols = symbols.map(|x| format!("\"{}\"", x)).join(",");
-    let tickers = reqwest::get(format!("https://api.binance.com/api/v3/ticker?symbols=[{}]&windowSize=1h", symbols))
-        .await
-        .unwrap()
-        .json::<Vec<Ticker>>()
-        .await
-        .unwrap();
+    let tickers = reqwest::get(format!(
+        "https://api.binance.com/api/v3/ticker?symbols=[{}]&windowSize=1h",
+        symbols
+    ))
+    .await
+    .unwrap()
+    .json::<Vec<Ticker>>()
+    .await
+    .unwrap();
     println!("{:#?}", tickers);
 
     let enclave_signer = generate_signer();
@@ -80,11 +79,21 @@ async fn main() {
                 is_writable: false,
             },
         ],
-        data: PingParams{
-            prices: tickers.iter().map(|x| BorshDecimal::from(&x.lastPrice)).collect(),
-            volumes: tickers.iter().map(|x| BorshDecimal::from(&x.volume)).collect(),
-            twaps: tickers.iter().map(|x| BorshDecimal::from(&x.weightedAvgPrice)).collect(),
-        }.data(),
+        data: PingParams {
+            prices: tickers
+                .iter()
+                .map(|x| BorshDecimal::from(&x.lastPrice))
+                .collect(),
+            volumes: tickers
+                .iter()
+                .map(|x| BorshDecimal::from(&x.volume))
+                .collect(),
+            twaps: tickers
+                .iter()
+                .map(|x| BorshDecimal::from(&x.weightedAvgPrice))
+                .collect(),
+        }
+        .data(),
     };
     FunctionResult::generate_verifiable_solana_tx(enclave_signer, vec![ix])
         .await

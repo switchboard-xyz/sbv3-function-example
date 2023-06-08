@@ -29,8 +29,7 @@ COPY configs/app.manifest.template .
 COPY configs/boot.sh /boot.sh
 RUN gramine-manifest app.manifest.template > app.manifest
 RUN gramine-sgx-gen-private-key
-RUN gramine-sgx-sign --manifest app.manifest --output app.manifest.sgx | tee /out.txt
-RUN cat /out.txt | tail -1 | sed -e "s/^[[:space:]]*//" | xxd -r -p | base64 | tee /measurement.txt
+RUN gramine-sgx-sign --manifest app.manifest --output app.manifest.sgx | tail -2 | tee out.txt
 RUN mkdir -p /data/protected_files
 ENTRYPOINT ["bash", "/boot.sh"]
 
