@@ -2,7 +2,11 @@
 set -e
 export DOCKER_BUILDKIT=1
 IMG_NAME=${1:-function}
-docker build . -f Dockerfile --tag "$IMG_NAME"
+if [[ "$(uname -s)" == "Linux" ]]; then
+  docker build . -f Dockerfile --tag "${IMG_NAME}"
+elif [[ "$(uname -s)" == "Darwin" ]]; then
+  docker buildx build --platform linux/amd64 --tag ${IMG_NAME} -f Dockerfile . --load
+fi
 id=$(docker run -it -d --rm --entrypoint bash "$IMG_NAME")
 mkdir -p out/
 docker cp "$id":/measurement.txt out/measurement.txt

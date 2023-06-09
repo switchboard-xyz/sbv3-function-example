@@ -24,29 +24,3 @@ signer for privilidged actions in your application!
 
 See https://crates.io/crates/solana_switchboard_attestation_program_sdk for
 asserting this chain inside your program.
-
-## Hosting your machine
-
-Dont have an SGX machine? No problem!
-
-Many cloud providers provide sgx machines so you can fire it up and forget.
-
-Run the following to fire up an SGX machine in azure cloud and clone and build
-this repo
-
-`bash scripts/sgx_init_machine.sh`
-
-## Notes
-
-### Intel SGX SDK
-
-Source:
-[Intel Docs](https://software.intel.com/content/www/us/en/develop/articles/intel-software-guard-extensions-data-center-attestation-primitives-quick-install-guide.html),
-[Download](https://www.intel.com/content/www/us/en/developer/tools/software-guard-extensions/linux-overview.html)
-
-Run the following commands to install the `intel-sgx`
-
-```
-curl -fsSLo /usr/share/keyrings/intel-sgx-deb.asc https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key
-```
-# sbv3-example2
