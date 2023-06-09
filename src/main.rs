@@ -59,21 +59,9 @@ async fn main() {
     let ix = Instruction {
         program_id: DEMO_PID,
         accounts: vec![
-            AccountMeta {
-                pubkey: fn_key,
-                is_signer: false,
-                is_writable: false,
-            },
-            AccountMeta {
-                pubkey: fn_quote,
-                is_signer: false,
-                is_writable: false,
-            },
-            AccountMeta {
-                pubkey: enclave_signer.pubkey(),
-                is_signer: true,
-                is_writable: false,
-            },
+            AccountMeta::new_readonly(fn_key, false),
+            AccountMeta::new_readonly(fn_quote, false),
+            AccountMeta::new_readonly(enclave_signer.pubkey(), true),
         ],
         data: PingParams {
             prices: tickers
