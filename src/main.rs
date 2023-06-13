@@ -12,6 +12,10 @@ use solana_sdk::pubkey;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Signer;
 use tokio;
+use rsa::{RsaPublicKey, RsaPrivateKey};
+use rsa::pkcs8::ToPublicKey;
+use rand::rngs::OsRng;
+use serde_json::{json, Value};
 
 const DEMO_PID: Pubkey = pubkey!("8kjszBCEgkzAsU6QySHSZvr9yFaboau2RnarCQFFvasS");
 
@@ -40,6 +44,21 @@ struct Ticker {
 
 #[tokio::main(worker_threads = 12)]
 async fn main() {
+    let mut os_rng = OsRng::default();
+    let priv_key = RsaPrivateKey::new(&mut os_rng, 2048).unwrap();
+    let pub_key = RsaPublicKey::from(&priv_key).to_public_key_der().unwrap();
+    let pub_key: &[u8] = pub_key.as_ref();
+    let secrets_quote = Sgx::gramine_generate_quote(pub_key).unwrap();
+    let client = reqwest::Client::new();
+    let secrets = client.post("http://20.254.56.236:8080")
+        .json(&json!({
+            "quote": &secrets_quote,
+            "pubkey": pub_key,
+        }))
+        .send()
+        .await
+        .unwrap();
+
     let symbols = ["BTCUSDC", "ETHUSDC", "SOLUSDT"];
 
     let symbols = symbols.map(|x| format!("\"{}\"", x)).join(",");
