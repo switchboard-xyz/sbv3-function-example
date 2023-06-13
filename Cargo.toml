@@ -1,10 +1,10 @@
 [package]
 name = "app"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2021"
 
 [dependencies]
-sb_functions_sdk = "0.1.0"
+sb_functions_sdk = "=0.1.2"
 anchor-client = "0.27.0"
 futures = "0.3"
 getrandom = "0.2.8"
@@ -23,8 +23,6 @@ chrono = "0.4.25"
 cron = "0.12.0"
 rust_decimal = "1.29.1"
 reqwest = { version = "0.11.18", features = ["rustls-tls"], default-features = false }
-rsa = "*"
-rand = "*"
 
 [profile.release]
 strip = true  # Automatically strip symbols from the binary.
