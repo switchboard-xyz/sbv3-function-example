@@ -41,6 +41,7 @@ struct Ticker {
 #[tokio::main(worker_threads = 12)]
 async fn main() {
     let secrets = fetch_secrets("http://20.254.56.236:8080").await;
+    println!("{:#?}", secrets);
 
     let symbols = ["BTCUSDC", "ETHUSDC", "SOLUSDT"];
 
