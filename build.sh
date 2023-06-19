@@ -5,6 +5,8 @@ IMG_NAME=${1:-function}
 if [[ "$(uname -s)" == "Linux" ]]; then
   docker build . -f Dockerfile --tag "${IMG_NAME}"
 elif [[ "$(uname -s)" == "Darwin" ]]; then
+  docker buildx create --name mybuilder > /dev/null 2>&1 || true;
+  docker buildx use mybuilder
   docker buildx build --platform linux/amd64 --tag ${IMG_NAME} -f Dockerfile . --load
 fi
 id=$(docker run -it -d --rm --entrypoint bash "$IMG_NAME")
